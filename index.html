@@ -404,14 +404,16 @@
                                                         ×
                                                     </button>
                                                     
-                                                    <img
-                                                        src={item.image}
-                                                        alt={item.name}
-                                                        className="w-full h-20 object-cover rounded mb-2"
-                                                        onError={(e) => {
-                                                            e.target.src = `https://via.placeholder.com/100x100/6b7280/ffffff?text=${encodeURIComponent(item.name.slice(0,3))}`;
-                                                        }}
-                                                    />
+                                                    <div className="w-full h-20 bg-gray-100 rounded mb-2 flex items-center justify-center overflow-hidden">
+                                                        <img
+                                                            src={item.image}
+                                                            alt={item.name}
+                                                            className="max-w-full max-h-full object-contain"
+                                                            onError={(e) => {
+                                                                e.target.src = `https://via.placeholder.com/100x100/6b7280/ffffff?text=${encodeURIComponent(item.name.slice(0,3))}`;
+                                                            }}
+                                                        />
+                                                    </div>
                                                     
                                                     <h3 className="font-medium text-sm text-gray-900 truncate" title={item.name}>
                                                         {item.name}
