@@ -12,270 +12,173 @@
 <body>
     <div id="root"></div>
     <script type="text/babel">
-        import React, { useState, useRef } from 'react';
-import { Package, Home, Building2, Plus, X, Search, Filter } from 'lucide-react';
+        const { useState, useRef } = React;
+        const { Package, Home, Building2, Plus, X, Search, Filter } = lucideReact || {
+            Package: () => React.createElement('div', null, '📦'),
+            Home: () => React.createElement('div', null, '🏠'),
+            Building2: () => React.createElement('div', null, '🏢'),
+            Plus: () => React.createElement('div', null, '+'),
+            X: () => React.createElement('div', null, '×'),
+            Search: () => React.createElement('div', null, '🔍'),
+            Filter: () => React.createElement('div', null, '📋')
+        };
 
-const PhotoPropsManager = () => {
-  const [items, setItems] = useState([
-    { id: 1, name: 'カメラレンズ 24-70mm', image: 'https://via.placeholder.com/100x100/4f46e5/ffffff?text=lens', location: 'company', category: 'カメラ機材' },
-    { id: 2, name: 'LEDライトパネル', image: 'https://via.placeholder.com/100x100/dc2626/ffffff?text=LED', location: 'staffA', category: 'ライティング' },
-    { id: 3, name: 'カーボン三脚', image: 'https://via.placeholder.com/100x100/059669/ffffff?text=三脚', location: 'staffB', category: '支持機材' },
-    { id: 4, name: '折りたたみレフ板', image: 'https://via.placeholder.com/100x100/d97706/ffffff?text=レフ', location: 'company', category: 'ライティング' },
-    { id: 5, name: 'カメラバッグ', image: 'https://via.placeholder.com/100x100/7c2d12/ffffff?text=BAG', location: 'staffA', category: 'アクセサリー' },
-    { id: 6, name: 'ワイヤレスマイク', image: 'https://via.placeholder.com/100x100/1e40af/ffffff?text=MIC', location: 'company', category: '音響機材' },
-  ]);
+        const PhotoPropsManager = () => {
+            const [items, setItems] = useState([
+                { id: 1, name: 'カメラレンズ 24-70mm', image: 'https://via.placeholder.com/100x100/4f46e5/ffffff?text=lens', location: 'company', category: 'カメラ機材' },
+                { id: 2, name: 'LEDライトパネル', image: 'https://via.placeholder.com/100x100/dc2626/ffffff?text=LED', location: 'staffA', category: 'ライティング' },
+                { id: 3, name: 'カーボン三脚', image: 'https://via.placeholder.com/100x100/059669/ffffff?text=三脚', location: 'staffB', category: '支持機材' },
+                { id: 4, name: '折りたたみレフ板', image: 'https://via.placeholder.com/100x100/d97706/ffffff?text=レフ', location: 'company', category: 'ライティング' },
+                { id: 5, name: 'カメラバッグ', image: 'https://via.placeholder.com/100x100/7c2d12/ffffff?text=BAG', location: 'staffA', category: 'アクセサリー' },
+                { id: 6, name: 'ワイヤレスマイク', image: 'https://via.placeholder.com/100x100/1e40af/ffffff?text=MIC', location: 'company', category: '音響機材' },
+            ]);
 
-  const [newItem, setNewItem] = useState({ name: '', category: '' });
-  const [showAddForm, setShowAddForm] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [filterCategory, setFilterCategory] = useState('');
-  const [draggedItem, setDraggedItem] = useState(null);
-  const fileInputRef = useRef(null);
+            const [newItem, setNewItem] = useState({ name: '', category: '' });
+            const [showAddForm, setShowAddForm] = useState(false);
+            const [searchQuery, setSearchQuery] = useState('');
+            const [filterCategory, setFilterCategory] = useState('');
+            const [draggedItem, setDraggedItem] = useState(null);
+            const fileInputRef = useRef(null);
 
-  const locations = {
-    company: { name: '会社', icon: Building2, color: 'bg-blue-50 border-blue-200' },
-    staffA: { name: 'スタッフAの家', icon: Home, color: 'bg-green-50 border-green-200' },
-    staffB: { name: 'スタッフBの家', icon: Home, color: 'bg-purple-50 border-purple-200' }
-  };
+            const locations = {
+                company: { name: '会社', icon: Building2, color: 'bg-blue-50 border-blue-200' },
+                staffA: { name: 'スタッフAの家', icon: Home, color: 'bg-green-50 border-green-200' },
+                staffB: { name: 'スタッフBの家', icon: Home, color: 'bg-purple-50 border-purple-200' }
+            };
 
-  const categories = ['カメラ機材', 'ライティング', '支持機材', 'アクセサリー', '音響機材', 'その他'];
+            const categories = ['カメラ機材', 'ライティング', '支持機材', 'アクセサリー', '音響機材', 'その他'];
 
-  const filteredItems = items.filter(item => {
-    const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesCategory = !filterCategory || item.category === filterCategory;
-    return matchesSearch && matchesCategory;
-  });
+            const filteredItems = items.filter(item => {
+                const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase());
+                const matchesCategory = !filterCategory || item.category === filterCategory;
+                return matchesSearch && matchesCategory;
+            });
 
-  const handleDragStart = (e, item) => {
-    setDraggedItem(item);
-    e.dataTransfer.effectAllowed = 'move';
-  };
+            const handleDragStart = (e, item) => {
+                setDraggedItem(item);
+                e.dataTransfer.effectAllowed = 'move';
+            };
 
-  const handleDragOver = (e) => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
-  };
+            const handleDragOver = (e) => {
+                e.preventDefault();
+                e.dataTransfer.dropEffect = 'move';
+            };
 
-  const handleDrop = (e, newLocation) => {
-    e.preventDefault();
-    if (draggedItem) {
-      setItems(prev => prev.map(item => 
-        item.id === draggedItem.id 
-          ? { ...item, location: newLocation }
-          : item
-      ));
-      setDraggedItem(null);
-    }
-  };
+            const handleDrop = (e, newLocation) => {
+                e.preventDefault();
+                if (draggedItem) {
+                    setItems(prev => prev.map(item => 
+                        item.id === draggedItem.id 
+                            ? { ...item, location: newLocation }
+                            : item
+                    ));
+                    setDraggedItem(null);
+                }
+            };
 
-  const handleImageUpload = (e) => {
-    const file = e.target.files[0];
-    if (file && newItem.name && newItem.category) {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        const newId = Math.max(...items.map(item => item.id)) + 1;
-        setItems(prev => [...prev, {
-          id: newId,
-          name: newItem.name,
-          image: event.target.result,
-          location: 'company',
-          category: newItem.category
-        }]);
-        setNewItem({ name: '', category: '' });
-        setShowAddForm(false);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
+            const handleImageUpload = (e) => {
+                const file = e.target.files[0];
+                if (file && newItem.name && newItem.category) {
+                    const reader = new FileReader();
+                    reader.onload = (event) => {
+                        const newId = Math.max(...items.map(item => item.id)) + 1;
+                        setItems(prev => [...prev, {
+                            id: newId,
+                            name: newItem.name,
+                            image: event.target.result,
+                            location: 'company',
+                            category: newItem.category
+                        }]);
+                        setNewItem({ name: '', category: '' });
+                        setShowAddForm(false);
+                    };
+                    reader.readAsDataURL(file);
+                }
+            };
 
-  const removeItem = (id) => {
-    setItems(prev => prev.filter(item => item.id !== id));
-  };
+            const removeItem = (id) => {
+                setItems(prev => prev.filter(item => item.id !== id));
+            };
 
-  const getItemsByLocation = (location) => {
-    return filteredItems.filter(item => item.location === location);
-  };
+            const getItemsByLocation = (location) => {
+                return filteredItems.filter(item => item.location === location);
+            };
 
-  return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-7xl mx-auto">
-        {/* ヘッダー */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-4">撮影小物管理システム</h1>
-          
-          {/* 検索・フィルター・追加ボタン */}
-          <div className="flex flex-wrap gap-4 mb-6">
-            <div className="relative flex-1 min-w-64">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-              <input
-                type="text"
-                placeholder="小物名で検索..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-            </div>
-            
-            <div className="relative">
-              <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-              <select
-                value={filterCategory}
-                onChange={(e) => setFilterCategory(e.target.value)}
-                className="pl-10 pr-8 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none bg-white"
-              >
-                <option value="">全カテゴリー</option>
-                {categories.map(category => (
-                  <option key={category} value={category}>{category}</option>
-                ))}
-              </select>
-            </div>
-            
-            <button
-              onClick={() => setShowAddForm(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              <Plus className="w-4 h-4" />
-              小物を追加
-            </button>
-          </div>
-        </div>
-
-        {/* 新規追加フォーム */}
-        {showAddForm && (
-          <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-            <h3 className="text-lg font-semibold mb-4">新しい小物を追加</h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <input
-                type="text"
-                placeholder="小物名"
-                value={newItem.name}
-                onChange={(e) => setNewItem(prev => ({...prev, name: e.target.value}))}
-                className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-              <select
-                value={newItem.category}
-                onChange={(e) => setNewItem(prev => ({...prev, category: e.target.value}))}
-                className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              >
-                <option value="">カテゴリーを選択</option>
-                {categories.map(category => (
-                  <option key={category} value={category}>{category}</option>
-                ))}
-              </select>
-              <div className="flex gap-2">
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  onChange={handleImageUpload}
-                  className="hidden"
-                />
-                <button
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={!newItem.name || !newItem.category}
-                  className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
-                >
-                  画像を選択して追加
-                </button>
-                <button
-                  onClick={() => setShowAddForm(false)}
-                  className="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors"
-                >
-                  キャンセル
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* メインエリア */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {Object.entries(locations).map(([key, location]) => {
-            const LocationIcon = location.icon;
-            const locationItems = getItemsByLocation(key);
-            
-            return (
-              <div
-                key={key}
-                className={`${location.color} border-2 border-dashed rounded-lg p-4 min-h-96`}
-                onDragOver={handleDragOver}
-                onDrop={(e) => handleDrop(e, key)}
-              >
-                <div className="flex items-center gap-2 mb-4">
-                  <LocationIcon className="w-5 h-5 text-gray-600" />
-                  <h2 className="text-lg font-semibold text-gray-800">{location.name}</h2>
-                  <span className="bg-gray-200 text-gray-600 text-sm px-2 py-1 rounded-full">
-                    {locationItems.length}個
-                  </span>
-                </div>
-                
-                <div className="grid grid-cols-2 gap-3">
-                  {locationItems.map(item => (
-                    <div
-                      key={item.id}
-                      draggable
-                      onDragStart={(e) => handleDragStart(e, item)}
-                      className="bg-white rounded-lg shadow-sm p-3 cursor-move hover:shadow-md transition-shadow relative group"
-                    >
-                      <button
-                        onClick={() => removeItem(item.id)}
-                        className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
-                      >
-                        <X className="w-3 h-3" />
-                      </button>
-                      
-                      <img
-                        src={item.image}
-                        alt={item.name}
-                        className="w-full h-20 object-cover rounded mb-2"
-                        onError={(e) => {
-                          e.target.src = `https://via.placeholder.com/100x100/6b7280/ffffff?text=${encodeURIComponent(item.name.slice(0,3))}`;
-                        }}
-                      />
-                      
-                      <h3 className="font-medium text-sm text-gray-900 truncate" title={item.name}>
-                        {item.name}
-                      </h3>
-                      <p className="text-xs text-gray-500 mt-1">{item.category}</p>
-                    </div>
-                  ))}
-                </div>
-                
-                {locationItems.length === 0 && (
-                  <div className="flex flex-col items-center justify-center h-32 text-gray-400">
-                    <Package className="w-8 h-8 mb-2" />
-                    <p className="text-sm">ここに小物をドロップ</p>
-                  </div>
-                )}
-              </div>
+            return React.createElement('div', { className: "min-h-screen bg-gray-50 p-6" },
+                React.createElement('div', { className: "max-w-7xl mx-auto" },
+                    React.createElement('div', { className: "mb-8" },
+                        React.createElement('h1', { className: "text-3xl font-bold text-gray-900 mb-4" }, '撮影小物マップ'),
+                        React.createElement('div', { className: "flex flex-wrap gap-4 mb-6" },
+                            React.createElement('div', { className: "relative flex-1 min-w-64" },
+                                React.createElement(Search, { className: "absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" }),
+                                React.createElement('input', {
+                                    type: "text",
+                                    placeholder: "小物名で検索...",
+                                    value: searchQuery,
+                                    onChange: (e) => setSearchQuery(e.target.value),
+                                    className: "w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                })
+                            ),
+                            React.createElement('button', {
+                                onClick: () => setShowAddForm(true),
+                                className: "flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                            },
+                                React.createElement(Plus, { className: "w-4 h-4" }),
+                                '小物を追加'
+                            )
+                        )
+                    ),
+                    React.createElement('div', { className: "grid grid-cols-1 lg:grid-cols-3 gap-6" },
+                        Object.entries(locations).map(([key, location]) => {
+                            const LocationIcon = location.icon;
+                            const locationItems = getItemsByLocation(key);
+                            
+                            return React.createElement('div', {
+                                key: key,
+                                className: `${location.color} border-2 border-dashed rounded-lg p-4 min-h-96`,
+                                onDragOver: handleDragOver,
+                                onDrop: (e) => handleDrop(e, key)
+                            },
+                                React.createElement('div', { className: "flex items-center gap-2 mb-4" },
+                                    React.createElement(LocationIcon, { className: "w-5 h-5 text-gray-600" }),
+                                    React.createElement('h2', { className: "text-lg font-semibold text-gray-800" }, location.name),
+                                    React.createElement('span', { className: "bg-gray-200 text-gray-600 text-sm px-2 py-1 rounded-full" }, 
+                                        `${locationItems.length}個`
+                                    )
+                                ),
+                                React.createElement('div', { className: "grid grid-cols-2 gap-3" },
+                                    locationItems.map(item => 
+                                        React.createElement('div', {
+                                            key: item.id,
+                                            draggable: true,
+                                            onDragStart: (e) => handleDragStart(e, item),
+                                            className: "bg-white rounded-lg shadow-sm p-3 cursor-move hover:shadow-md transition-shadow relative group"
+                                        },
+                                            React.createElement('img', {
+                                                src: item.image,
+                                                alt: item.name,
+                                                className: "w-full h-20 object-cover rounded mb-2"
+                                            }),
+                                            React.createElement('h3', { 
+                                                className: "font-medium text-sm text-gray-900 truncate",
+                                                title: item.name
+                                            }, item.name),
+                                            React.createElement('p', { className: "text-xs text-gray-500 mt-1" }, item.category)
+                                        )
+                                    )
+                                ),
+                                locationItems.length === 0 && React.createElement('div', { className: "flex flex-col items-center justify-center h-32 text-gray-400" },
+                                    React.createElement(Package, { className: "w-8 h-8 mb-2" }),
+                                    React.createElement('p', { className: "text-sm" }, 'ここに小物をドロップ')
+                                )
+                            );
+                        })
+                    )
+                )
             );
-          })}
-        </div>
+        };
 
-        {/* 統計情報 */}
-        <div className="mt-8 bg-white rounded-lg shadow-sm p-6">
-          <h3 className="text-lg font-semibold mb-4">統計情報</h3>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="text-center">
-              <div className="text-2xl font-bold text-blue-600">{items.length}</div>
-              <div className="text-sm text-gray-500">総小物数</div>
-            </div>
-            {Object.entries(locations).map(([key, location]) => (
-              <div key={key} className="text-center">
-                <div className="text-2xl font-bold text-gray-700">
-                  {getItemsByLocation(key).length}
-                </div>
-                <div className="text-sm text-gray-500">{location.name}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-export default PhotoPropsManager;
+        ReactDOM.render(React.createElement(PhotoPropsManager), document.getElementById('root'));
     </script>
 </body>
 </html>
