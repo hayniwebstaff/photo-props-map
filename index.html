@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>撮影小物マップ</title>
+    <title>撮影小物マップ v2.0</title>
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -15,13 +15,16 @@
     <script type="text/babel">
         const { useState, useRef } = React;
 
-        // シンプルなアイコンコンポーネント
+        // アイコンコンポーネント
         const IconHome = () => <span style={{fontSize: '18px'}}>🏠</span>;
         const IconBuilding = () => <span style={{fontSize: '18px'}}>🏢</span>;
         const IconPackage = () => <span style={{fontSize: '18px'}}>📦</span>;
         const IconPlus = () => <span style={{fontSize: '18px'}}>➕</span>;
         const IconSearch = () => <span style={{fontSize: '18px'}}>🔍</span>;
         const IconX = () => <span style={{fontSize: '18px'}}>❌</span>;
+        const IconSettings = () => <span style={{fontSize: '18px'}}>⚙️</span>;
+        const IconEdit = () => <span style={{fontSize: '18px'}}>✏️</span>;
+        const IconSave = () => <span style={{fontSize: '18px'}}>💾</span>;
 
         function PhotoPropsManager() {
             const [items, setItems] = useState([
@@ -33,11 +36,16 @@
                 { id: 6, name: 'ワイヤレスマイク', image: 'https://via.placeholder.com/100x100/1e40af/ffffff?text=MIC', location: 'company', category: '音響機材' },
             ]);
 
+            const [categories, setCategories] = useState(['カメラ機材', 'ライティング', '支持機材', 'アクセサリー', '音響機材', 'その他']);
+            
             const [newItem, setNewItem] = useState({ name: '', category: '' });
             const [showAddForm, setShowAddForm] = useState(false);
+            const [showCategoryManager, setShowCategoryManager] = useState(false);
             const [searchQuery, setSearchQuery] = useState('');
             const [filterCategory, setFilterCategory] = useState('');
             const [draggedItem, setDraggedItem] = useState(null);
+            const [newCategoryName, setNewCategoryName] = useState('');
+            const [editingCategory, setEditingCategory] = useState({ index: -1, name: '' });
             const fileInputRef = useRef(null);
 
             const locations = {
@@ -46,14 +54,84 @@
                 staffB: { name: 'スタッフBの家', icon: IconHome, color: 'bg-purple-50 border-purple-200' }
             };
 
-            const categories = ['カメラ機材', 'ライティング', '支持機材', 'アクセサリー', '音響機材', 'その他'];
-
             const filteredItems = items.filter(item => {
                 const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase());
                 const matchesCategory = !filterCategory || item.category === filterCategory;
                 return matchesSearch && matchesCategory;
             });
 
+            // カテゴリー管理関数
+            const addCategory = () => {
+                if (newCategoryName.trim() && !categories.includes(newCategoryName.trim())) {
+                    setCategories(prev => [...prev, newCategoryName.trim()]);
+                    setNewCategoryName('');
+                }
+            };
+
+            const deleteCategory = (categoryToDelete) => {
+                if (categories.length <= 1) {
+                    alert('最低1つのカテゴリーは必要です');
+                    return;
+                }
+                
+                const hasItems = items.some(item => item.category === categoryToDelete);
+                if (hasItems) {
+                    const confirmed = confirm(`「${categoryToDelete}」を使用している小物があります。削除しますか？\n（該当小物は「その他」カテゴリーに移動されます）`);
+                    if (!confirmed) return;
+                    
+                    // 該当する小物を「その他」に移動
+                    setItems(prev => prev.map(item => 
+                        item.category === categoryToDelete 
+                            ? { ...item, category: 'その他' }
+                            : item
+                    ));
+                    
+                    // 「その他」カテゴリーがない場合は追加
+                    if (!categories.includes('その他')) {
+                        setCategories(prev => [...prev.filter(cat => cat !== categoryToDelete), 'その他']);
+                    } else {
+                        setCategories(prev => prev.filter(cat => cat !== categoryToDelete));
+                    }
+                } else {
+                    setCategories(prev => prev.filter(cat => cat !== categoryToDelete));
+                }
+            };
+
+            const startEditCategory = (index) => {
+                setEditingCategory({ index, name: categories[index] });
+            };
+
+            const saveEditCategory = () => {
+                if (editingCategory.name.trim() && editingCategory.index >= 0) {
+                    const oldCategoryName = categories[editingCategory.index];
+                    const newCategoryName = editingCategory.name.trim();
+                    
+                    if (categories.includes(newCategoryName) && newCategoryName !== oldCategoryName) {
+                        alert('そのカテゴリー名は既に存在します');
+                        return;
+                    }
+                    
+                    // カテゴリー名を更新
+                    setCategories(prev => prev.map((cat, idx) => 
+                        idx === editingCategory.index ? newCategoryName : cat
+                    ));
+                    
+                    // 該当する小物のカテゴリーも更新
+                    setItems(prev => prev.map(item => 
+                        item.category === oldCategoryName 
+                            ? { ...item, category: newCategoryName }
+                            : item
+                    ));
+                    
+                    setEditingCategory({ index: -1, name: '' });
+                }
+            };
+
+            const cancelEditCategory = () => {
+                setEditingCategory({ index: -1, name: '' });
+            };
+
+            // 既存の関数群
             const handleDragStart = (e, item) => {
                 setDraggedItem(item);
                 e.dataTransfer.effectAllowed = 'move';
@@ -109,7 +187,16 @@
                     <div className="max-w-7xl mx-auto">
                         {/* ヘッダー */}
                         <div className="mb-8">
-                            <h1 className="text-3xl font-bold text-gray-900 mb-4">撮影小物マップ</h1>
+                            <div className="flex items-center gap-4 mb-4">
+                                <h1 className="text-3xl font-bold text-gray-900">撮影小物マップ v2.0</h1>
+                                <button
+                                    onClick={() => setShowCategoryManager(true)}
+                                    className="flex items-center gap-2 px-3 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors text-sm"
+                                >
+                                    <IconSettings />
+                                    カテゴリー管理
+                                </button>
+                            </div>
                             
                             {/* 検索・フィルター・追加ボタン */}
                             <div className="flex flex-wrap gap-4 mb-6">
@@ -148,6 +235,90 @@
                                 </button>
                             </div>
                         </div>
+
+                        {/* カテゴリー管理モーダル */}
+                        {showCategoryManager && (
+                            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                                <div className="bg-white rounded-lg p-6 w-full max-w-md max-h-96 overflow-y-auto">
+                                    <h3 className="text-lg font-semibold mb-4">カテゴリー管理</h3>
+                                    
+                                    {/* 新しいカテゴリー追加 */}
+                                    <div className="flex gap-2 mb-4">
+                                        <input
+                                            type="text"
+                                            placeholder="新しいカテゴリー名"
+                                            value={newCategoryName}
+                                            onChange={(e) => setNewCategoryName(e.target.value)}
+                                            className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                            onKeyPress={(e) => e.key === 'Enter' && addCategory()}
+                                        />
+                                        <button
+                                            onClick={addCategory}
+                                            className="px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                                        >
+                                            追加
+                                        </button>
+                                    </div>
+                                    
+                                    {/* カテゴリー一覧 */}
+                                    <div className="space-y-2 mb-4">
+                                        {categories.map((category, index) => (
+                                            <div key={index} className="flex items-center gap-2 p-2 border rounded-lg">
+                                                {editingCategory.index === index ? (
+                                                    <>
+                                                        <input
+                                                            type="text"
+                                                            value={editingCategory.name}
+                                                            onChange={(e) => setEditingCategory(prev => ({ ...prev, name: e.target.value }))}
+                                                            className="flex-1 px-2 py-1 border rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                                            onKeyPress={(e) => e.key === 'Enter' && saveEditCategory()}
+                                                        />
+                                                        <button
+                                                            onClick={saveEditCategory}
+                                                            className="p-1 text-green-600 hover:bg-green-100 rounded"
+                                                        >
+                                                            <IconSave />
+                                                        </button>
+                                                        <button
+                                                            onClick={cancelEditCategory}
+                                                            className="p-1 text-gray-600 hover:bg-gray-100 rounded"
+                                                        >
+                                                            <IconX />
+                                                        </button>
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <span className="flex-1">{category}</span>
+                                                        <span className="text-sm text-gray-500">
+                                                            ({items.filter(item => item.category === category).length}個)
+                                                        </span>
+                                                        <button
+                                                            onClick={() => startEditCategory(index)}
+                                                            className="p-1 text-blue-600 hover:bg-blue-100 rounded"
+                                                        >
+                                                            <IconEdit />
+                                                        </button>
+                                                        <button
+                                                            onClick={() => deleteCategory(category)}
+                                                            className="p-1 text-red-600 hover:bg-red-100 rounded"
+                                                        >
+                                                            <IconX />
+                                                        </button>
+                                                    </>
+                                                )}
+                                            </div>
+                                        ))}
+                                    </div>
+                                    
+                                    <button
+                                        onClick={() => setShowCategoryManager(false)}
+                                        className="w-full px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors"
+                                    >
+                                        閉じる
+                                    </button>
+                                </div>
+                            </div>
+                        )}
 
                         {/* 新規追加フォーム */}
                         {showAddForm && (
