@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>撮影小物マップ v2.3</title>
+    <title>撮影小物マップ v2.4</title>
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -48,10 +48,31 @@
             const [editingCategory, setEditingCategory] = useState({ index: -1, name: '' });
             const fileInputRef = useRef(null);
 
-            const locations = {
-                company: { name: '会社', icon: IconBuilding, color: 'bg-blue-50 border-blue-200' },
-                staffA: { name: 'スタッフAの家', icon: IconHome, color: 'bg-green-50 border-green-200' },
-                staffB: { name: 'スタッフBの家', icon: IconHome, color: 'bg-purple-50 border-purple-200' }
+            // 場所管理関数
+            const addLocation = () => {
+                if (newLocationName.trim()) {
+                    const locationKeys = Object.keys(locations);
+                    const newKey = `location${locationKeys.length}`;
+                    const colors = [
+                        'bg-red-50 border-red-200',
+                        'bg-yellow-50 border-yellow-200',
+                        'bg-indigo-50 border-indigo-200',
+                        'bg-pink-50 border-pink-200',
+                        'bg-teal-50 border-teal-200',
+                        'bg-orange-50 border-orange-200'
+                    ];
+                    const colorIndex = locationKeys.length % colors.length;
+                    
+                    setLocations(prev => ({
+                        ...prev,
+                        [newKey]: {
+                            name: newLocationName.trim(),
+                            icon: IconHome,
+                            color: colors[colorIndex]
+                        }
+                    }));
+                    setNewLocationName('');
+                }
             };
 
             const filteredItems = items.filter(item => {
