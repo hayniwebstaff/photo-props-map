@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>撮影小物マップ v2.4</title>
+    <title>撮影小物マップ v2.2</title>
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -25,6 +25,10 @@
         const IconSettings = () => <span style={{fontSize: '18px'}}>⚙️</span>;
         const IconEdit = () => <span style={{fontSize: '18px'}}>✏️</span>;
         const IconSave = () => <span style={{fontSize: '18px'}}>💾</span>;
+        const IconDownload = () => <span style={{fontSize: '18px'}}>📥</span>;
+        const IconUpload = () => <span style={{fontSize: '18px'}}>📤</span>;
+        const IconDatabase = () => <span style={{fontSize: '18px'}}>🗃️</span>;
+        const IconLocation = () => <span style={{fontSize: '18px'}}>📍</span>;
 
         function PhotoPropsManager() {
             const [items, setItems] = useState([
@@ -37,16 +41,32 @@
             ]);
 
             const [categories, setCategories] = useState(['カメラ機材', 'ライティング', '支持機材', 'アクセサリー', '音響機材', 'その他']);
+            const [locations, setLocations] = useState({
+                company: { name: '会社', icon: IconBuilding, color: 'bg-blue-50 border-blue-200' },
+                staffA: { name: 'スタッフAの家', icon: IconHome, color: 'bg-green-50 border-green-200' },
+                staffB: { name: 'スタッフBの家', icon: IconHome, color: 'bg-purple-50 border-purple-200' }
+            });
             
             const [newItem, setNewItem] = useState({ name: '', category: '' });
             const [showAddForm, setShowAddForm] = useState(false);
             const [showCategoryManager, setShowCategoryManager] = useState(false);
+            const [showDataManager, setShowDataManager] = useState(false);
+            const [showLocationManager, setShowLocationManager] = useState(false);
             const [searchQuery, setSearchQuery] = useState('');
             const [filterCategory, setFilterCategory] = useState('');
             const [draggedItem, setDraggedItem] = useState(null);
             const [newCategoryName, setNewCategoryName] = useState('');
             const [editingCategory, setEditingCategory] = useState({ index: -1, name: '' });
+            const [newLocationName, setNewLocationName] = useState('');
+            const [editingLocation, setEditingLocation] = useState({ key: '', name: '' });
             const fileInputRef = useRef(null);
+            const csvInputRef = useRef(null);
+
+            const filteredItems = items.filter(item => {
+                const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase());
+                const matchesCategory = !filterCategory || item.category === filterCategory;
+                return matchesSearch && matchesCategory;
+            });
 
             // 場所管理関数
             const addLocation = () => {
@@ -75,11 +95,55 @@
                 }
             };
 
-            const filteredItems = items.filter(item => {
-                const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase());
-                const matchesCategory = !filterCategory || item.category === filterCategory;
-                return matchesSearch && matchesCategory;
-            });
+            const deleteLocation = (keyToDelete) => {
+                const locationEntries = Object.entries(locations);
+                if (locationEntries.length <= 1) {
+                    alert('最低1つの場所は必要です');
+                    return;
+                }
+
+                const hasItems = items.some(item => item.location === keyToDelete);
+                if (hasItems) {
+                    const remainingKeys = Object.keys(locations).filter(key => key !== keyToDelete);
+                    const firstRemainingKey = remainingKeys[0];
+                    const firstRemainingName = locations[firstRemainingKey].name;
+                    
+                    const confirmed = confirm(`「${locations[keyToDelete].name}」を削除しますか？\nここにある小物は「${firstRemainingName}」に移動されます。`);
+                    if (!confirmed) return;
+                    
+                    // 該当する小物を最初の残り場所に移動
+                    setItems(prev => prev.map(item => 
+                        item.location === keyToDelete 
+                            ? { ...item, location: firstRemainingKey }
+                            : item
+                    ));
+                }
+                
+                const newLocations = { ...locations };
+                delete newLocations[keyToDelete];
+                setLocations(newLocations);
+            };
+
+            const startEditLocation = (key) => {
+                setEditingLocation({ key, name: locations[key].name });
+            };
+
+            const saveEditLocation = () => {
+                if (editingLocation.name.trim() && editingLocation.key) {
+                    setLocations(prev => ({
+                        ...prev,
+                        [editingLocation.key]: {
+                            ...prev[editingLocation.key],
+                            name: editingLocation.name.trim()
+                        }
+                    }));
+                    setEditingLocation({ key: '', name: '' });
+                }
+            };
+
+            const cancelEditLocation = () => {
+                setEditingLocation({ key: '', name: '' });
+            };
 
             // カテゴリー管理関数
             const addCategory = () => {
@@ -155,9 +219,10 @@
             // CSV関連の関数
             const downloadCSV = () => {
                 const csvHeader = 'ID,名前,カテゴリー,場所,画像URL\n';
-                const csvData = items.map(item => 
-                    `${item.id},"${item.name}","${item.category}","${item.location}","${item.image}"`
-                ).join('\n');
+                const csvData = items.map(item => {
+                    const locationName = locations[item.location]?.name || item.location;
+                    return `${item.id},"${item.name}","${item.category}","${locationName}","${item.image}"`;
+                }).join('\n');
                 
                 const csvContent = csvHeader + csvData;
                 const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -169,6 +234,7 @@
                 document.body.appendChild(link);
                 link.click();
                 document.body.removeChild(link);
+                URL.revokeObjectURL(url);
             };
 
             const handleCSVUpload = (e) => {
@@ -189,7 +255,7 @@
 
                         const newItems = [];
                         const newCategories = new Set(categories);
-                        let maxId = Math.max(...items.map(item => item.id));
+                        let maxId = Math.max(...items.map(item => item.id), 0);
 
                         for (let i = 1; i < lines.length; i++) {
                             if (lines[i].trim() === '') continue;
@@ -199,16 +265,25 @@
                             
                             const name = values[1] ? values[1].replace(/"/g, '') : '';
                             const category = values[2] ? values[2].replace(/"/g, '') : '';
-                            const location = values[3] ? values[3].replace(/"/g, '') : '';
+                            const locationName = values[3] ? values[3].replace(/"/g, '') : '';
                             const imageUrl = values[4] ? values[4].replace(/"/g, '') : 'https://via.placeholder.com/100x100/6b7280/ffffff?text=画像';
 
-                            if (name && category && location) {
+                            if (name && category && locationName) {
+                                // 場所名からキーを検索
+                                let locationKey = 'company';
+                                for (const [key, loc] of Object.entries(locations)) {
+                                    if (loc.name === locationName) {
+                                        locationKey = key;
+                                        break;
+                                    }
+                                }
+
                                 maxId++;
                                 newItems.push({
                                     id: maxId,
                                     name: name,
                                     category: category,
-                                    location: location === '会社' ? 'company' : location === 'スタッフAの家' ? 'staffA' : location === 'スタッフBの家' ? 'staffB' : 'company',
+                                    location: locationKey,
                                     image: imageUrl
                                 });
                                 newCategories.add(category);
@@ -244,6 +319,7 @@
                     }
                 }
             };
+
             const handleDragStart = (e, item) => {
                 setDraggedItem(item);
                 e.dataTransfer.effectAllowed = 'move';
@@ -271,7 +347,7 @@
                 if (file && newItem.name && newItem.category) {
                     const reader = new FileReader();
                     reader.onload = (event) => {
-                        const newId = Math.max(...items.map(item => item.id)) + 1;
+                        const newId = Math.max(...items.map(item => item.id), 0) + 1;
                         setItems(prev => [...prev, {
                             id: newId,
                             name: newItem.name,
@@ -300,13 +376,27 @@
                         {/* ヘッダー */}
                         <div className="mb-8">
                             <div className="flex items-center gap-4 mb-4">
-                                <h1 className="text-3xl font-bold text-gray-900">撮影小物マップ v2.0</h1>
+                                <h1 className="text-3xl font-bold text-gray-900">撮影小物マップ v2.2</h1>
                                 <button
                                     onClick={() => setShowCategoryManager(true)}
                                     className="flex items-center gap-2 px-3 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors text-sm"
                                 >
                                     <IconSettings />
                                     カテゴリー管理
+                                </button>
+                                <button
+                                    onClick={() => setShowLocationManager(true)}
+                                    className="flex items-center gap-2 px-3 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors text-sm"
+                                >
+                                    <IconLocation />
+                                    場所管理
+                                </button>
+                                <button
+                                    onClick={() => setShowDataManager(true)}
+                                    className="flex items-center gap-2 px-3 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm"
+                                >
+                                    <IconDatabase />
+                                    データ管理
                                 </button>
                             </div>
                             
@@ -347,6 +437,167 @@
                                 </button>
                             </div>
                         </div>
+
+                        {/* 場所管理モーダル */}
+                        {showLocationManager && (
+                            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                                <div className="bg-white rounded-lg p-6 w-full max-w-md max-h-96 overflow-y-auto">
+                                    <h3 className="text-lg font-semibold mb-4">場所管理</h3>
+                                    
+                                    {/* 新しい場所追加 */}
+                                    <div className="flex gap-2 mb-4">
+                                        <input
+                                            type="text"
+                                            placeholder="新しい場所名"
+                                            value={newLocationName}
+                                            onChange={(e) => setNewLocationName(e.target.value)}
+                                            className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                            onKeyPress={(e) => e.key === 'Enter' && addLocation()}
+                                        />
+                                        <button
+                                            onClick={addLocation}
+                                            className="px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                                        >
+                                            追加
+                                        </button>
+                                    </div>
+                                    
+                                    {/* 場所一覧 */}
+                                    <div className="space-y-2 mb-4">
+                                        {Object.entries(locations).map(([key, location]) => (
+                                            <div key={key} className="flex items-center gap-2 p-2 border rounded-lg">
+                                                {editingLocation.key === key ? (
+                                                    <>
+                                                        <input
+                                                            type="text"
+                                                            value={editingLocation.name}
+                                                            onChange={(e) => setEditingLocation(prev => ({ ...prev, name: e.target.value }))}
+                                                            className="flex-1 px-2 py-1 border rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                                            onKeyPress={(e) => e.key === 'Enter' && saveEditLocation()}
+                                                        />
+                                                        <button
+                                                            onClick={saveEditLocation}
+                                                            className="p-1 text-green-600 hover:bg-green-100 rounded"
+                                                        >
+                                                            <IconSave />
+                                                        </button>
+                                                        <button
+                                                            onClick={cancelEditLocation}
+                                                            className="p-1 text-gray-600 hover:bg-gray-100 rounded"
+                                                        >
+                                                            <IconX />
+                                                        </button>
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <location.icon />
+                                                        <span className="flex-1">{location.name}</span>
+                                                        <span className="text-sm text-gray-500">
+                                                            ({items.filter(item => item.location === key).length}個)
+                                                        </span>
+                                                        <button
+                                                            onClick={() => startEditLocation(key)}
+                                                            className="p-1 text-blue-600 hover:bg-blue-100 rounded"
+                                                        >
+                                                            <IconEdit />
+                                                        </button>
+                                                        <button
+                                                            onClick={() => deleteLocation(key)}
+                                                            className="p-1 text-red-600 hover:bg-red-100 rounded"
+                                                        >
+                                                            <IconX />
+                                                        </button>
+                                                    </>
+                                                )}
+                                            </div>
+                                        ))}
+                                    </div>
+                                    
+                                    <button
+                                        onClick={() => setShowLocationManager(false)}
+                                        className="w-full px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors"
+                                    >
+                                        閉じる
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* データ管理モーダル */}
+                        {showDataManager && (
+                            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                                <div className="bg-white rounded-lg p-6 w-full max-w-md">
+                                    <h3 className="text-lg font-semibold mb-4">データ管理</h3>
+                                    
+                                    <div className="space-y-4">
+                                        {/* CSVダウンロード */}
+                                        <div className="p-4 border rounded-lg">
+                                            <h4 className="font-medium mb-2 flex items-center gap-2">
+                                                <IconDownload />
+                                                データエクスポート
+                                            </h4>
+                                            <p className="text-sm text-gray-600 mb-3">
+                                                現在の小物データをCSVファイルとしてダウンロードします。
+                                            </p>
+                                            <button
+                                                onClick={downloadCSV}
+                                                className="w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                                            >
+                                                CSVダウンロード ({items.length}件)
+                                            </button>
+                                        </div>
+
+                                        {/* CSVアップロード */}
+                                        <div className="p-4 border rounded-lg">
+                                            <h4 className="font-medium mb-2 flex items-center gap-2">
+                                                <IconUpload />
+                                                データインポート
+                                            </h4>
+                                            <p className="text-sm text-gray-600 mb-3">
+                                                CSVファイルから小物データを取り込みます。既存データに追加されます。
+                                            </p>
+                                            <input
+                                                ref={csvInputRef}
+                                                type="file"
+                                                accept=".csv"
+                                                onChange={handleCSVUpload}
+                                                className="hidden"
+                                            />
+                                            <button
+                                                onClick={() => csvInputRef.current?.click()}
+                                                className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                                            >
+                                                CSVファイルを選択
+                                            </button>
+                                        </div>
+
+                                        {/* データクリア */}
+                                        <div className="p-4 border border-red-200 rounded-lg bg-red-50">
+                                            <h4 className="font-medium mb-2 text-red-800 flex items-center gap-2">
+                                                <IconX />
+                                                データ削除
+                                            </h4>
+                                            <p className="text-sm text-red-600 mb-3">
+                                                全ての小物データを削除します。この操作は元に戻せません。
+                                            </p>
+                                            <button
+                                                onClick={clearAllData}
+                                                className="w-full px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                                            >
+                                                全データを削除
+                                            </button>
+                                        </div>
+                                    </div>
+                                    
+                                    <button
+                                        onClick={() => setShowDataManager(false)}
+                                        className="w-full mt-4 px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors"
+                                    >
+                                        閉じる
+                                    </button>
+                                </div>
+                            </div>
+                        )}
 
                         {/* カテゴリー管理モーダル */}
                         {showCategoryManager && (
