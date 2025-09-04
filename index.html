@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>撮影小物マップ v2.0</title>
+    <title>撮影小物マップ v2.3</title>
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -131,7 +131,98 @@
                 setEditingCategory({ index: -1, name: '' });
             };
 
-            // 既存の関数群
+            // CSV関連の関数
+            const downloadCSV = () => {
+                const csvHeader = 'ID,名前,カテゴリー,場所,画像URL\n';
+                const csvData = items.map(item => 
+                    `${item.id},"${item.name}","${item.category}","${item.location}","${item.image}"`
+                ).join('\n');
+                
+                const csvContent = csvHeader + csvData;
+                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                const link = document.createElement('a');
+                const url = URL.createObjectURL(blob);
+                link.setAttribute('href', url);
+                link.setAttribute('download', `撮影小物マップ_${new Date().toISOString().split('T')[0]}.csv`);
+                link.style.visibility = 'hidden';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            };
+
+            const handleCSVUpload = (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    try {
+                        const csvText = event.target.result;
+                        const lines = csvText.split('\n');
+                        const header = lines[0];
+                        
+                        if (!header.includes('名前') || !header.includes('カテゴリー') || !header.includes('場所')) {
+                            alert('CSVファイルの形式が正しくありません。\n必要な列：名前、カテゴリー、場所');
+                            return;
+                        }
+
+                        const newItems = [];
+                        const newCategories = new Set(categories);
+                        let maxId = Math.max(...items.map(item => item.id));
+
+                        for (let i = 1; i < lines.length; i++) {
+                            if (lines[i].trim() === '') continue;
+                            
+                            const values = lines[i].match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g);
+                            if (!values || values.length < 4) continue;
+                            
+                            const name = values[1] ? values[1].replace(/"/g, '') : '';
+                            const category = values[2] ? values[2].replace(/"/g, '') : '';
+                            const location = values[3] ? values[3].replace(/"/g, '') : '';
+                            const imageUrl = values[4] ? values[4].replace(/"/g, '') : 'https://via.placeholder.com/100x100/6b7280/ffffff?text=画像';
+
+                            if (name && category && location) {
+                                maxId++;
+                                newItems.push({
+                                    id: maxId,
+                                    name: name,
+                                    category: category,
+                                    location: location === '会社' ? 'company' : location === 'スタッフAの家' ? 'staffA' : location === 'スタッフBの家' ? 'staffB' : 'company',
+                                    image: imageUrl
+                                });
+                                newCategories.add(category);
+                            }
+                        }
+
+                        if (newItems.length > 0) {
+                            const confirmed = confirm(`${newItems.length}件のデータをインポートします。既存のデータに追加されます。よろしいですか？`);
+                            if (confirmed) {
+                                setItems(prev => [...prev, ...newItems]);
+                                setCategories(Array.from(newCategories));
+                                alert(`${newItems.length}件のデータをインポートしました。`);
+                            }
+                        } else {
+                            alert('有効なデータが見つかりませんでした。');
+                        }
+                    } catch (error) {
+                        alert('CSVファイルの読み込みでエラーが発生しました。');
+                        console.error('CSV読み込みエラー:', error);
+                    }
+                };
+                reader.readAsText(file, 'UTF-8');
+                e.target.value = '';
+            };
+
+            const clearAllData = () => {
+                const confirmed = confirm('全ての小物データを削除します。この操作は元に戻せません。よろしいですか？');
+                if (confirmed) {
+                    const doubleConfirmed = confirm('本当によろしいですか？全データが失われます。');
+                    if (doubleConfirmed) {
+                        setItems([]);
+                        alert('全データを削除しました。');
+                    }
+                }
+            };
             const handleDragStart = (e, item) => {
                 setDraggedItem(item);
                 e.dataTransfer.effectAllowed = 'move';
